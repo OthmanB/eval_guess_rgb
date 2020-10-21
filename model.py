@@ -5,6 +5,26 @@ import numpy as np
 from bump_DP import make_synthetic_asymptotic_star
 from function_rot import  amplitude_ratio
 
+def hmax_from_envelope(hnumax, Dnu, Gamma0):
+	ksi=3.1 # sum of the mode visibility. As l=0, 1,2,3 are usually visible, ksi~1 + 1.5 + 0.53 + 0.07   
+	return hmax=Hnumax*Dnu/(np.pi * ksi * Gamma0)
+
+def noise_harvey(x, params):
+	'''
+		Compute the generalized Harvey model as per defined in my IDL prefit codes 
+	'''
+	Nparams=len(params)
+	NHarvey=Nparams/3.
+	if np.fix(NHarvey) != NHarvey:
+		print('Error: The invalid number of parameters in params vector for function model.py::noise_harvey()')
+		print('        Debug required. The program will exit now')
+		exit() 
+	m=np.zeros(len(x))
+	nh=0
+	for j in range(NHarvey):
+		m=m+params[nh]/(1. + (params[nh+1]*(1e-3*x))**params[nh+2])
+		nh=nh+3
+	return m
 # Calculate the model for a given degree
 # Elle tient compte des multiplets (splitting d'ordre 1)
 # Elle tient compte de la force centrifuge (ordre 2) par le biais de a2=asym[0]= eta * Dnl ~ eta * 0.7 [no unit]
@@ -108,7 +128,8 @@ def model_core(params, x):
 	return model
 
 
-def model_asymptotic(numax_star, Dnu_star, epsilon_star, beta_p_star=0., gamma_max_l0=1, alpha_star=0., rot_core=0.1, rot_envelope=0.1, inclination=45, dfmin=6, dfmax=6):
+def model_asymptotic(numax_star, Dnu_star, epsilon_star, DP1_star, beta_p_star=0., gamma_max_l0=1, maxHNR_l0=1, alpha_star=0., 
+	rot_core=0.1, rot_envelope=0.1, inclination=45, dfmin=6, dfmax=6, noise_params=[ 1., -2. , 0. , 1. ,-1. , 0. , 2.  ,1.], output_file_rot='test.rot'):
 	'''
 		numnax_star: numax of the star
 		Dnu_star: Large separation Dnu of the star
@@ -126,6 +147,7 @@ def model_asymptotic(numax_star, Dnu_star, epsilon_star, beta_p_star=0., gamma_m
 	el=1 # Degree of the simulated mixed mode
 	Vl=[1,1.5,0.6, 0.07]
 	delta0l_percent=1
+	q_star=0.25
 	# -------------------
 
 	# Parameters for p modes that follow exactly the asymptotic relation of p modes
@@ -138,14 +160,11 @@ def model_asymptotic(numax_star, Dnu_star, epsilon_star, beta_p_star=0., gamma_m
 
 	nmax_star=numax_star/Dnu_star - epsilon_star
 	alpha_p_star=beta_p_star/nmax_star
-
-	noise_params=[ 1., -2. , 0. , 1. ,-1. , 0. , 2.  ,1.]
-
+	
 	# ----- Setup to not touch ----
 	Teff_star=-1
 	rot_ratio=-1
 	H0_spread=0
-	output_file_rot='test.rot'
 	#filetemplate="Configurations/templates/Sun.template"
 	filetemplate="templates/11771760.template"
 	# ----------------
@@ -155,4 +174,4 @@ def model_asymptotic(numax_star, Dnu_star, epsilon_star, beta_p_star=0., gamma_m
 				   height_l0=height_l0, height_l1=height_l1, height_l2=height_l2, height_l3=height_l3, 
 				   width_l0=width_l0, width_l1=width_l1, width_l2=width_l2, width_l3=width_l3, 
 				   a1_l1=a1_l1, a1_l2=a1_l1, a1_l3=a1_l1, inc=45)
-
+	return model, nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3
