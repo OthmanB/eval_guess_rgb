@@ -1,3 +1,6 @@
+'''
+	Functions to generate a model for a RGB star. Handles l=1 mixed modes. Other degrees are considered as p modes
+'''
 import numpy as np
 from bump_DP import make_synthetic_asymptotic_star
 from function_rot import  amplitude_ratio
@@ -41,54 +44,7 @@ endfor
 
 return result
 
-def model_asymptotic(numax_star, Dnu_star, epsilon_star, beta_p_star=0., gamma_max_l0=1, alpha_star=0., rot_core=0.1, rot_envelope=0.1, inclination=45, dfmin=6, dfmax=6):
-	'''
-		numnax_star: numax of the star
-		Dnu_star: Large separation Dnu of the star
-		epsilon_star: epsilon of the star
-		beta_p_star: curvature of the modes 
-		gamma_max_l0: Width at numax for the l=0 modes
-		alpha_star: Parameters for g modes that follow exactly the asymptotic relation of g modes for a star with radiative core. Close to 0 if no nuclear reactions
-		rot_core: rotation rate of the core in microHz
-		rot_envelope: rotation rate of the envelope in microHz
-		dfmin: Integer specifying how many radial orders below numax will be created
-		dfmax: Integer specifying how many radial orders above numax will be created	
-	'''
-	
-	# ---- Constants ----
-	el=1 # Degree of the simulated mixed mode
-	Vl=[1,1.5,0.6, 0.07]
-	delta0l_percent=1
-	# -------------------
-
-	# Parameters for p modes that follow exactly the asymptotic relation of p modes
-	delta0l_star=-el*(el + 1) * delta0l_percent / 100.
-
-	## Define the frequency range for the calculation by (1) getting numax from Dnu and (2) fixing a range around numax
-	#numax_star=numax_from_stello2009(Dnu_star)
-	fmin=numax_star - dfmin*Dnu_star
-	fmax=numax_star + dfmax*Dnu_star
-
-	nmax_star=numax_star/Dnu_star - epsilon_star
-	alpha_p_star=beta_p_star/nmax_star
-
-	noise_params=[ 1., -2. , 0. , 1. ,-1. , 0. , 2.  ,1.]
-
-	# ----- Setup to not touch ----
-	Teff_star=-1
-	rot_ratio=-1
-	H0_spread=0
-	output_file_rot='test.rot'
-	#filetemplate="Configurations/templates/Sun.template"
-	filetemplate="templates/11771760.template"
-	# ----------------
-
-	nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=make_synthetic_asymptotic_star(Teff_star, numax_star, Dnu_star, epsilon_star, delta0l_percent, alpha_p_star, nmax_star, DP1_star, alpha_star, q_star, fmin, fmax, maxHNR_l0=maxHNR_l0, noise_params=noise_params, Gamma_max_l0=Gamma_max_l0, rot_env_input=rot_envelope, rot_ratio_input=rot_ratio, rot_core_input=rot_core, output_file_rot=output_file_rot, Vl=Vl, H0_spread=H0_spread, filetemplate=filetemplate)
-	model=model_core_alt(x, nu_l0=nu_l0, nu_l1=nu_m_l1, nu_l2=nu_l2, nu_l3=nu_l3, 
-				   height_l0=height_l0, height_l1=height_l1, height_l2=height_l2, height_l3=height_l3, 
-				   width_l0=width_l0, width_l1=width_l1, width_l2=width_l2, width_l3=width_l3, 
-				   a1_l1=a1_l1, a1_l2=a1_l1, a1_l3=a1_l1, inc=45)
-
+=
 def model_core_alt(x, nu_l0=[], nu_l1=[], nu_l2=[], nu_l3=[], 
 				   height_l0=[], height_l1=[], height_l2=[], height_l3=[], 
 				   width_l0=[], width_l1=[], width_l2=[], width_l3=[], 
@@ -150,3 +106,53 @@ def model_core(params, x):
 		model=model + build_l_mode(x, p[1], p[2], p[4], p[5], p[6], p[7], p[3], p[0], V) # H, f, a1, a2, a3, asym, Width, l, V
 		i0=i0+N_Lparams+1
 	return model
+
+
+def model_asymptotic(numax_star, Dnu_star, epsilon_star, beta_p_star=0., gamma_max_l0=1, alpha_star=0., rot_core=0.1, rot_envelope=0.1, inclination=45, dfmin=6, dfmax=6):
+	'''
+		numnax_star: numax of the star
+		Dnu_star: Large separation Dnu of the star
+		epsilon_star: epsilon of the star
+		beta_p_star: curvature of the modes 
+		gamma_max_l0: Width at numax for the l=0 modes
+		alpha_star: Parameters for g modes that follow exactly the asymptotic relation of g modes for a star with radiative core. Close to 0 if no nuclear reactions
+		rot_core: rotation rate of the core in microHz
+		rot_envelope: rotation rate of the envelope in microHz
+		dfmin: Integer specifying how many radial orders below numax will be created
+		dfmax: Integer specifying how many radial orders above numax will be created	
+	'''
+	
+	# ---- Constants ----
+	el=1 # Degree of the simulated mixed mode
+	Vl=[1,1.5,0.6, 0.07]
+	delta0l_percent=1
+	# -------------------
+
+	# Parameters for p modes that follow exactly the asymptotic relation of p modes
+	delta0l_star=-el*(el + 1) * delta0l_percent / 100.
+
+	## Define the frequency range for the calculation by (1) getting numax from Dnu and (2) fixing a range around numax
+	#numax_star=numax_from_stello2009(Dnu_star)
+	fmin=numax_star - dfmin*Dnu_star
+	fmax=numax_star + dfmax*Dnu_star
+
+	nmax_star=numax_star/Dnu_star - epsilon_star
+	alpha_p_star=beta_p_star/nmax_star
+
+	noise_params=[ 1., -2. , 0. , 1. ,-1. , 0. , 2.  ,1.]
+
+	# ----- Setup to not touch ----
+	Teff_star=-1
+	rot_ratio=-1
+	H0_spread=0
+	output_file_rot='test.rot'
+	#filetemplate="Configurations/templates/Sun.template"
+	filetemplate="templates/11771760.template"
+	# ----------------
+
+	nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=make_synthetic_asymptotic_star(Teff_star, numax_star, Dnu_star, epsilon_star, delta0l_percent, alpha_p_star, nmax_star, DP1_star, alpha_star, q_star, fmin, fmax, maxHNR_l0=maxHNR_l0, noise_params=noise_params, Gamma_max_l0=Gamma_max_l0, rot_env_input=rot_envelope, rot_ratio_input=rot_ratio, rot_core_input=rot_core, output_file_rot=output_file_rot, Vl=Vl, H0_spread=H0_spread, filetemplate=filetemplate)
+	model=model_core_alt(x, nu_l0=nu_l0, nu_l1=nu_m_l1, nu_l2=nu_l2, nu_l3=nu_l3, 
+				   height_l0=height_l0, height_l1=height_l1, height_l2=height_l2, height_l3=height_l3, 
+				   width_l0=width_l0, width_l1=width_l1, width_l2=width_l2, width_l3=width_l3, 
+				   a1_l1=a1_l1, a1_l2=a1_l1, a1_l3=a1_l1, inc=45)
+

@@ -1,3 +1,7 @@
+'''
+	Functions to ensure the calculation of the m-component visbilities for a given inclination and degree
+'''
+
 import numpy as np
 
 def amplitude_ratio(l,beta):
