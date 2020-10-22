@@ -4,17 +4,18 @@
 import numpy as np
 from bump_DP import make_synthetic_asymptotic_star
 from function_rot import  amplitude_ratio
+import matplotlib.pyplot as plt
 
-def hmax_from_envelope(hnumax, Dnu, Gamma0):
+def hmax_from_envelope(Hnumax, Dnu, Gamma0):
 	ksi=3.1 # sum of the mode visibility. As l=0, 1,2,3 are usually visible, ksi~1 + 1.5 + 0.53 + 0.07   
-	return hmax=Hnumax*Dnu/(np.pi * ksi * Gamma0)
+	return Hnumax*Dnu/(np.pi * ksi * Gamma0)
 
 def noise_harvey(x, params):
 	'''
 		Compute the generalized Harvey model as per defined in my IDL prefit codes 
 	'''
 	Nparams=len(params)
-	NHarvey=Nparams/3.
+	NHarvey=int(Nparams/3.)
 	if np.fix(NHarvey) != NHarvey:
 		print('Error: The invalid number of parameters in params vector for function model.py::noise_harvey()')
 		print('        Debug required. The program will exit now')
@@ -32,39 +33,36 @@ def noise_harvey(x, params):
 # A noter que a2 ~ a1^2/(G rho_sun) * Dnu_sun/Dnu [no unit]. Typiquement, rho=[0.1, 1.5] g/cm^3 pour une solar-like. G=6.67d-8 cm^3/g/s^2
 def build_l_mode(x_l,Amp_l,f_c_l,a1,a2,a3, asym,gamma_l,l,V):
 
-result=0
+	result=0
 
-#ymax=max(Amp_l*V)
-#plot,x_l,x_l,/nodata,background=fsc_color('white'),yr=[0,ymax],color=fsc_color('black'), $
-#	xr=[f_c_l - 2*l*a1 - gamma_l, f_c_l + 2*l*a1 + gamma_l]
-for m in range(-l,l+1):
-	if l != 0 then:
-		Qlm=1.*(l*(l+1.) - 3.*m^2)/((2.*l-1.)*(2.*l+3.)) #  coeficient for centrifugal force
-		if l == 1:
-			clm=m #   latitudinal coeficient for l=1
-		if l == 2:
-			clm=1.*(5*m^3 - 17*m)/3. #  latitudinal coeficient for l=2
-		if l == 3:
-			clm=0 # a3=asym[1] IS NOT IMPLEMENTED FOR l=3
-		profile=2*( x_l- f_c_l*( 1d + a2*Qlm) + m*a1 + clm*a3) / gamma_l 
-	else:
-		profile=2*( x_l-f_c_l)/gamma_l
+	#ymax=max(Amp_l*V)
+	#plot,x_l,x_l,/nodata,background=fsc_color('white'),yr=[0,ymax],color=fsc_color('black'), $
+	#	xr=[f_c_l - 2*l*a1 - gamma_l, f_c_l + 2*l*a1 + gamma_l]
+	for m in range(-l,l+1):
+		if l != 0 :
+			Qlm=1.*(l*(l+1.) - 3.*m**2)/((2.*l-1.)*(2.*l+3.)) #  coeficient for centrifugal force
+			if l == 1:
+				clm=m #   latitudinal coeficient for l=1
+			if l == 2:
+				clm=1.*(5*m**3 - 17*m)/3. #  latitudinal coeficient for l=2
+			if l == 3:
+				clm=0 # a3=asym[1] IS NOT IMPLEMENTED FOR l=3
+			profile=2*( x_l- f_c_l*( 1e0 + a2*Qlm) + m*a1 + clm*a3) / gamma_l 
+		else:
+			profile=2*( x_l-f_c_l)/gamma_l
 
-  profile=profile^2
-  asymetry=(1d + asym*(x_l/f_c_l - 1e0))^2 + (0.5*gamma_l*asym/f_c_l)^2 # term of asymetry for each lorentzian
+		profile=profile**2
+		asymetry=(1e0 + asym*(x_l/f_c_l - 1e0))**2 + (0.5*gamma_l*asym/f_c_l)**2 # term of asymetry for each lorentzian
 
-  #if abs(m) eq 0 then col=fsc_color('blue')
-  #if abs(m) eq 1 then col=fsc_color('red')
-  #if abs(m) eq 2 then col=fsc_color('Orange')
-  #oplot, x_l,Amp_l*V[m+l]/(1+profile),color=col;,linestyle=2
-  #plots, [f_c_l+m*a1, f_c_l+m*a1], [0,ymax], color=fsc_color('black'), linestyle=2
-  result=result + asymetry*Amp_l*V[m+l]/(1e0+profile)
+		#if abs(m) eq 0 then col=fsc_color('blue')
+		#if abs(m) eq 1 then col=fsc_color('red')
+		#if abs(m) eq 2 then col=fsc_color('Orange')
+		#oplot, x_l,Amp_l*V[m+l]/(1+profile),color=col;,linestyle=2
+		#plots, [f_c_l+m*a1, f_c_l+m*a1], [0,ymax], color=fsc_color('black'), linestyle=2
+		result=result + asymetry*Amp_l*V[m+l]/(1e0+profile)
 
-endfor
+	return result
 
-return result
-
-=
 def model_core_alt(x, nu_l0=[], nu_l1=[], nu_l2=[], nu_l3=[], 
 				   height_l0=[], height_l1=[], height_l2=[], height_l3=[], 
 				   width_l0=[], width_l1=[], width_l2=[], width_l3=[], 
@@ -101,12 +99,12 @@ def model_core_alt(x, nu_l0=[], nu_l1=[], nu_l2=[], nu_l3=[],
 		model_l3=model_l3 + build_l_mode(x, height_l3[en], nu_l3[en], a1_l3[en], a2, a3, asym, width_l3[en], el, V) # H, f, a1, a2, a3, asym, Width, l, V
 
 	# ----- degug ----
-	plt.plot(x, model_l0)
-	plt.plot(x, model_l1)
-	plt.plot(x, model_l2)
-	plt.plot(x, model_l3)
-	plt.show()
-	return model_l0+model_l1+model_l2+model_l3
+	#plt.plot(x, model_l0, color='black')
+	#plt.plot(x, model_l1, color='red')
+	#plt.plot(x, model_l2, color='blue')
+	#plt.plot(x, model_l3, color='green')
+	#plt.show()
+	return model_l0, model_l1, model_l2, model_l3
 
 def model_core(params, x):
 	''' 
@@ -128,7 +126,7 @@ def model_core(params, x):
 	return model
 
 
-def model_asymptotic(numax_star, Dnu_star, epsilon_star, DP1_star, beta_p_star=0., gamma_max_l0=1, maxHNR_l0=1, alpha_star=0., 
+def model_asymptotic(numax_star, Dnu_star, epsilon_star, DP1_star, beta_p_star=0., delta0l_percent=1, gamma_max_l0=1, maxHNR_l0=1, alpha_star=0., 
 	rot_core=0.1, rot_envelope=0.1, inclination=45, dfmin=6, dfmax=6, noise_params=[ 1., -2. , 0. , 1. ,-1. , 0. , 2.  ,1.], output_file_rot='test.rot'):
 	'''
 		numnax_star: numax of the star
@@ -143,11 +141,12 @@ def model_asymptotic(numax_star, Dnu_star, epsilon_star, DP1_star, beta_p_star=0
 		dfmax: Integer specifying how many radial orders above numax will be created	
 	'''
 	
+	noise_params=[0, 1, 1, 1,1 ,1 , 1, 1]
 	# ---- Constants ----
 	el=1 # Degree of the simulated mixed mode
 	Vl=[1,1.5,0.6, 0.07]
-	delta0l_percent=1
-	q_star=0.25
+	#delta0l_percent=1
+	q_star=0.2
 	# -------------------
 
 	# Parameters for p modes that follow exactly the asymptotic relation of p modes
@@ -169,9 +168,43 @@ def model_asymptotic(numax_star, Dnu_star, epsilon_star, DP1_star, beta_p_star=0
 	filetemplate="templates/11771760.template"
 	# ----------------
 
-	nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=make_synthetic_asymptotic_star(Teff_star, numax_star, Dnu_star, epsilon_star, delta0l_percent, alpha_p_star, nmax_star, DP1_star, alpha_star, q_star, fmin, fmax, maxHNR_l0=maxHNR_l0, noise_params=noise_params, Gamma_max_l0=Gamma_max_l0, rot_env_input=rot_envelope, rot_ratio_input=rot_ratio, rot_core_input=rot_core, output_file_rot=output_file_rot, Vl=Vl, H0_spread=H0_spread, filetemplate=filetemplate)
-	model=model_core_alt(x, nu_l0=nu_l0, nu_l1=nu_m_l1, nu_l2=nu_l2, nu_l3=nu_l3, 
+	nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=make_synthetic_asymptotic_star(Teff_star, numax_star, Dnu_star, epsilon_star, 
+			delta0l_percent, alpha_p_star, nmax_star, DP1_star, alpha_star, q_star, fmin, fmax, maxHNR_l0=maxHNR_l0, noise_params=noise_params, 
+			Gamma_max_l0=gamma_max_l0, rot_env_input=rot_envelope, rot_ratio_input=rot_ratio, rot_core_input=rot_core, output_file_rot=output_file_rot, 
+			Vl=Vl, H0_spread=H0_spread, filetemplate=filetemplate)
+	return nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3
+
+
+def test_model_core_alt():
+
+	fmin=50
+	fmax=400
+	resol=0.05
+	freq=np.linspace(fmin, fmax, (fmax-fmin)/resol +1)
+	
+	inc=45
+
+	nu_l0=np.array([100, 200, 300])
+	nu_l1=np.array([150, 250, 350])
+	nu_l2=np.array([90, 190, 290])
+	nu_l3=np.array([135, 235, 335])
+
+	height_l0=np.array([1, 1, 1])
+	height_l1=np.array([1.5, 1.5, 1.5])
+	height_l2=np.array([0.5, 0.5, 0.5])
+	height_l3=np.array([0.07, 0.07, 0.07])
+	
+	width_l0=np.array([0.4, 0.4, 0.4])
+	width_l1=np.array([0.2, 0.2, 0.2])
+	width_l2=np.array([0.4, 0.4, 0.4])
+	width_l3=np.array([0.4, 0.4, 0.4])
+	a1_l1=np.array([1, 1, 1])
+	a1_l2=np.array([1, 1, 1])
+	a1_l3=np.array([1, 1, 1])
+	
+	model_core_alt(freq, nu_l0=nu_l0, nu_l1=nu_l1, nu_l2=nu_l2, nu_l3=nu_l3, 
 				   height_l0=height_l0, height_l1=height_l1, height_l2=height_l2, height_l3=height_l3, 
 				   width_l0=width_l0, width_l1=width_l1, width_l2=width_l2, width_l3=width_l3, 
-				   a1_l1=a1_l1, a1_l2=a1_l1, a1_l3=a1_l1, inc=45)
-	return model, nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3
+				   a1_l1=a1_l1, a1_l2=a1_l2, a1_l3=a1_l3, inc=inc)
+
+test_model_core_alt()

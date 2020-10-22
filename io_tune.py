@@ -2,6 +2,7 @@
 	Contains all functions handling the input and outputs formats and entries
 '''
 import numpy as np
+import os
 
 def format_ID(ID, Ndigits=9):
 	'''
@@ -32,19 +33,17 @@ def format_tab2D(txt, dtype=np.str, init_val=''):
 	for t in txt:
 		if Ncols < len(t.split()):
 				Ncols=len(t.split())
-				print(t.split())
-	print('Ncols=', Ncols)
-	print('Nlines=', Nlines)
-
+				#print(t.split())
+	#print('Ncols=', Ncols)
+	#print('Nlines=', Nlines)
 	if dtype != np.str and dtype != str:
 		out=np.zeros((Nlines, Ncols), dtype=dtype) + np.float(init_val)
 	else:
 		out=[]
-
 	for i in range(Nlines):
 		k=txt[i].split()
-		print('len(k)=', len(k))
-		print(k)
+		#print('len(k)=', len(k))
+		#print(k)
 		if dtype != np.str and dtype != str:
 			for j in range(len(k)):
 				out[i,j]=k[j]
@@ -127,7 +126,7 @@ def make_subdir_group(parent_dirs, child_dirs, verbose=False):
 		for child in child_dirs[i]:
 			if verbose == True:
 				print('           [2] ', child)
-			if path.isdir(parent + '/' + child) == False:
+			if os.path.isdir(parent + '/' + child) == False:
 				if verbose == True:
 					print('              Directory', parent+ '/' + child, ' does not exist ... creating it')
 				os.makedirs(os.path.join(parent, child))
@@ -146,7 +145,7 @@ def make_subdir_lintree(rootdir, subdir_seq, verbose=False):
 	subdir=rootdir
 	for sdir in subdir_seq:
 		subdir=os.path.join(subdir, sdir)
-		if path.isdir(subdir) == False:
+		if os.path.isdir(subdir) == False:
 			if verbose == True:
 				print('           Directory ', subdir, ' does not exist ... creating it')
 			os.makedirs(os.path.join(subdir))
@@ -154,7 +153,7 @@ def make_subdir_lintree(rootdir, subdir_seq, verbose=False):
 			if verbose == True:
 				print('           Directory ', subdir, ' exist. NOTHING TO DO')
 
-def target_subdir_lintree(rootdir, subdir_seq, verbose=False):
+def target_subdir_lintree(rootdir, subdir_seq, list_content=False, verbose=False):
 	'''
 		Compose the path to reach a specified subdirectory and evaluate its content
 		If the directory exists, it returns a (1) list with the content and another 
@@ -168,14 +167,19 @@ def target_subdir_lintree(rootdir, subdir_seq, verbose=False):
 	subdir=rootdir
 	for sdir in subdir_seq:
 		subdir=os.path.join(subdir, sdir)
-		if path.isdir(subdir) == False:
+		if os.path.isdir(subdir) == False:
 			if verbose == True:
 				print('    Directory ', subdir, 'Does not exist')
 			return ''
 		else:
-			out, out_type=list_files(subdir)
-			return subdir, out, out_type
+			if list_content == True:
+				out, out_type=list_files(subdir)
 
+	if list_content == True:
+		return subdir, out, out_type
+	else:
+		return subdir
+		
 def read_MCMCfile(file):
 	'''
 		Function that reads a .MCMC file
