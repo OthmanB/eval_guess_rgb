@@ -179,7 +179,7 @@ def test_model_core_alt():
 	fmin=50
 	fmax=400
 	resol=0.05
-	freq=np.linspace(fmin, fmax, (fmax-fmin)/resol +1)
+	freq=np.linspace(fmin, fmax, int((fmax-fmin)/resol +1))
 	
 	inc=45
 

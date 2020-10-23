@@ -136,7 +136,7 @@ Returns:
 def solver_mm(nu_p, nu_g, Dnu_p, DPl, q, numin=1, numax=1500., resol=1, returns_axis=False, verbose=False, factor=0.05):
 
 	# Generate a frequency axis that has a fixed resolution and that span from numin to numax
-	nu=numpy.linspace(numin, numax, num=(numax-numin)/resol)
+	nu=numpy.linspace(numin, numax, num=int((numax-numin)/resol))
 
 	# Function p(nu) describing the p modes
 	pnu=pnu_fct(nu, nu_p)
@@ -165,7 +165,7 @@ def solver_mm(nu_p, nu_g, Dnu_p, DPl, q, numin=1, numax=1500., resol=1, returns_
 		range_min=nu[ind] - 2*resol
 		range_max=nu[ind] + 2*resol
 		# Redefine nu, pnu and gnu for that local range
-		nu_local=numpy.linspace(range_min, range_max, num=(range_max-range_min)/(resol*factor))
+		nu_local=numpy.linspace(range_min, range_max, num=int((range_max-range_min)/(resol*factor)))
 		pnu_local=pnu_fct(nu_local, nu_p)
 		gnu_local=gnu_fct(nu_local, nu_g, Dnu_p, DPl, q)	
 

@@ -293,9 +293,17 @@ def set_inputs(variables_name, variables, Dnu, numax):
 		alpha_star_var=np.array([0.], dtype=np.float) # Default is 3 inclination values
 		vnames.append(v)
 
+	v='beta_p_star'
+	status=variables_name.count(v)
+	if status == True:
+		beta_p_star_var=np.array(variables[variables_name.index(v)], dtype=np.float)
+		vnames.append(variables_name[variables_name.index(v)])
+	else:
+		beta_p_star_var=np.array([0.], dtype=np.float) # Default is 3 inclination values
+		vnames.append(v)
 
 	#all_vectors=[DP1_var, gamma_max_l0_var, Hmax_factor, Hsig_var, rot_core_var, rot_envelope_var, inclination_var]
-	all_vectors=[DP1_var, gamma_max_l0_var, Hmax_factor, rot_core_var, rot_envelope_var, inclination_var,  d0l_var, alpha_star_var]
+	all_vectors=[DP1_var, gamma_max_l0_var, Hmax_factor, rot_core_var, rot_envelope_var, inclination_var,  d0l_var, alpha_star_var, beta_p_star_var]
 	return vnames, all_vectors
 
 def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file, N0=0, fmin=None, fmax=None):
@@ -369,6 +377,7 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file, N0=0, fmi
 		inc=float(param_vect_list[variables_name.index('inclination')])
 		delta_0l_percent=float(param_vect_list[variables_name.index('d0l_percent')])
 		alpha_star=float(param_vect_list[variables_name.index('alpha_star')])
+		beta_p_star=float(param_vect_list[variables_name.index('beta_p_star')])
 
 		maxHNR_l0=hmax_from_envelope(Hnumax, Dnu, gamma_max_l0) # build the maxHNR from gamma_max_l0_var as those are closely related to the NRJ of the modes
 		maxHNR_l0=Hmax_factor*maxHNR_l0
@@ -377,7 +386,7 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file, N0=0, fmi
 		maxHNR_l0=Hmax_factor*max(gaussian_filter(spec, scoef, mode='mirror'))
 
 		print('		dir_out=', dir_out)
-		nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=model_asymptotic(numax, Dnu, epsilon, DP1, beta_p_star=0., delta0l_percent=delta_0l_percent, gamma_max_l0=gamma_max_l0, maxHNR_l0=maxHNR_l0, alpha_star=alpha_star, 
+		nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=model_asymptotic(numax, Dnu, epsilon, DP1, beta_p_star=beta_p_star, delta0l_percent=delta_0l_percent, gamma_max_l0=gamma_max_l0, maxHNR_l0=maxHNR_l0, alpha_star=alpha_star, 
 								rot_core=rot_core, rot_envelope=rot_envelope, dfmin=6, dfmax=6, output_file_rot=os.path.join(dir_out,'info.rot'))
 		model_l0, model_l1, model_l2, model_l3=model_core_alt(freq, nu_l0=nu_l0, nu_l1=nu_m_l1, nu_l2=nu_l2, nu_l3=nu_l3, 
 				   height_l0=height_l0, height_l1=height_l1, height_l2=height_l2, height_l3=height_l3, 
@@ -397,13 +406,17 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file, N0=0, fmi
 	return 0
 
 def main_grid_maker(kic='3426673'):
-	rootdir='/Volumes/home/2020/ML-Siddarth/tune-rgb/grids/new/'
-	s1_dir='/Volumes/home/2020/ML-Siddarth/s1/'
-	mcmc_file_dir='/Volumes/home/2020/ML-Siddarth/setups/'
+	#rootdir='/Volumes/home/2020/ML-Siddarth/tune-rgb/grids/new/'
+	#s1_dir='/Volumes/home/2020/ML-Siddarth/s1/'
+	#mcmc_file_dir='/Volumes/home/2020/ML-Siddarth/setups/'
+
+	rootdir=os.path.join(os.getcwd(), 'grids/')
+	s1_dir='/var/services/homes/dataonly/2020/ML-Siddarth/s1/'
+	mcmc_file_dir='/var/services/homes/dataonly/2020/ML-Siddarth/setups/'
 
 	# NEED TO DEFINE HERE THE GRID
 	#variables_name=['DP1', 'gamma_max_l0', 'Hsig', 'rot_core', 'rot_envelope', 'inclination']
-	variables_name=['DP1', 'Hmax_factor', 'rot_core', 'rot_envelope',  'inclination', 'd0l_percent', 'alpha_star'] # ALL WILL BE DEFAULT VALUES
+	variables_name=['DP1', 'Hmax_factor', 'rot_core', 'rot_envelope',  'inclination', 'd0l_percent', 'alpha_star', 'beta_p_star'] # ALL WILL BE DEFAULT VALUES
 	# VALUES FROM SIDDARTH TABLE: 
 	# KIC      Dnu  Published_Dp  Published_core_rot(mu_hz)  published_observed_rotational_components  Predicted_Dp Predicted_q Predicted_core_rotation(mu_hz)  Predicted_inclination
 	# 3426673 13.56 83.10         0.38                       2 										   82.90 		0.13 	    0.89 							43.50
@@ -417,20 +430,22 @@ def main_grid_maker(kic='3426673'):
 	#alpha_star=[0, 0.15]
 	# ---- Complementary elements to new grid [1]----
 	DP1=[83.10]
-	Hmax_factor=[0.5, 0.6, 0.65]
+	Hmax_factor=[0.4,0.45, 0.5, 0.6]
 	rot_core=[0.38]
-	rot_envelope=[0.02]
+	rot_envelope=[0.03, 0.04, 0.05]
 	inclination=[43.5, 90]
-	d0l_percent=[1.5, 1.75, 2]
-	alpha_star=[0, 0.25, 0.4, 0.5]
+	d0l_percent=[1.5, 1.6, 1.75]
+	alpha_star=[0., 0.1, 0.25, 0.3, 0.35, 0.4, 0.45]
+	beta_p_star=[0., 0.004, 0.0076, 0.01, 0.014]
 	# ---- Complementary elements to new grid [1]----
 	DP1=[82.90]
-	Hmax_factor=[0.5, 0.6, 0.65]
+	Hmax_factor=[0.4, 0.45, 0.5, 0.6]
 	rot_core=[0.89]
-	rot_envelope=[0.02]
+	rot_envelope=[0.03, 0.04, 0.05]
 	inclination=[43.5, 90]
-	d0l_percent=[1.5, 1.75, 2]
-	alpha_star=[0., 0.25, 0.4, 0.5]
+	d0l_percent=[1.5, 1.6, 1.75]
+	alpha_star=[0.0, 0.1, 0.25, 0.35, 0.4, 0.45]
+	beta_p_star=[0., 0.004, 0.0076, 0.01, 0.014]
 
 	# --- Initial grid ---
 	#DP1=[80, 81, 82, 83, 84]
@@ -440,7 +455,8 @@ def main_grid_maker(kic='3426673'):
 	#rot_envelope=[0.1, 0.2]
 	#inclination=[30, 45, 60, 90]
 	#d0l_percent=[2]
-	variables=[DP1, Hmax_factor, rot_core, rot_envelope, inclination, d0l_percent, alpha_star] 
+	
+	variables=[DP1, Hmax_factor, rot_core, rot_envelope, inclination, d0l_percent, alpha_star, beta_p_star] 
 	
 	# Execute the grid_maker
 	s1_file= os.path.join(s1_dir , kic) + '.sav'
@@ -449,7 +465,7 @@ def main_grid_maker(kic='3426673'):
 
 	# Ensuring that the rootdir exists
 	make_subdir_lintree(rootdir, [kic], verbose=True)
-	grid_maker(os.path.join(rootdir,kic), variables, variables_name, s1_file, mcmc_file, N0=0, fmin=158, fmax=200)
+	grid_maker(os.path.join(rootdir,kic), variables, variables_name, s1_file, mcmc_file, N0=0, fmin=171, fmax=185)
 
 	print('All Done')
 
