@@ -177,13 +177,6 @@ def make_specplot_v2(freq, spec, model_l0, model_l1, model_l2, model_l3, Delta, 
 		fmax=fmin + Delta + Delta_overlap*Delta
 		plt.close()
 	return 0
-def search_grid():
-	'''
-		A function that perform a search for the best chi22 into the grid
-	'''
-
-	#target_subdir_lintree(rootdir, subdir_seq, verbose=False)
-	return 0
 
 
 def likelihood(y, model, likelihood_name='chi22'):
@@ -191,7 +184,7 @@ def likelihood(y, model, likelihood_name='chi22'):
 		Function that handles the likelihood functions
 	'''
 	if likelihood_name == 'chi22':
-		l = -np.sum(y/model)-np.sum(np.log(model))
+		l = np.sum(y/model)+np.sum(np.log(model))
 	else:
 		print('Error: The program only supports likelihood_name = "chi22"')
 	return l
@@ -291,12 +284,21 @@ def set_inputs(variables_name, variables, Dnu, numax):
 		d0l_var=np.array([1.5], dtype=np.float) # Default is 3 inclination values
 		vnames.append(v)
 
+	v='alpha_star'
+	status=variables_name.count(v)
+	if status == True:
+		alpha_star_var=np.array(variables[variables_name.index(v)], dtype=np.float)
+		vnames.append(variables_name[variables_name.index(v)])
+	else:
+		alpha_star_var=np.array([0.], dtype=np.float) # Default is 3 inclination values
+		vnames.append(v)
+
 
 	#all_vectors=[DP1_var, gamma_max_l0_var, Hmax_factor, Hsig_var, rot_core_var, rot_envelope_var, inclination_var]
-	all_vectors=[DP1_var, gamma_max_l0_var, Hmax_factor, rot_core_var, rot_envelope_var, inclination_var,  d0l_var]
+	all_vectors=[DP1_var, gamma_max_l0_var, Hmax_factor, rot_core_var, rot_envelope_var, inclination_var,  d0l_var, alpha_star_var]
 	return vnames, all_vectors
 
-def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file):
+def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file, N0=0, fmin=None, fmax=None):
 	'''
 		Core function that generates a grid into a specified directory
 		rootdir: The root directory in which the subdirectories specifiying the 
@@ -311,8 +313,10 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file):
 	print('  [a] Reading the MCMC file...')
 	KIC, Dnu, C0, n_range, extra_priors, type_vals, eigen_vals, noise_guess, noise_fit=read_MCMCfile(mcmc_file)
 	epsilon=C0/Dnu-np.fix(C0/Dnu)
-	fmin=n_range[0]*Dnu - C0
-	fmax=n_range[1]*Dnu + C0
+	if fmin == None:
+		fmin=n_range[0]*Dnu - C0
+	if fmax == None:
+		fmax=n_range[1]*Dnu + C0
 
 	# Read the s1 file
 	print('  [b] Reading the s1 file...')
@@ -349,7 +353,6 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file):
 	# The main loop making the grid
 	print('  [g] Computing the grid...')
 	Ncombi=len(combi)
-	N0=544
 	for i in range(N0,Ncombi):
 		param_vect_list=floatvect2str(combi[i])
 		print('			[', i+1, '/', Ncombi, '] ')
@@ -365,6 +368,7 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file):
 		rot_envelope=float(param_vect_list[variables_name.index('rot_envelope')])
 		inc=float(param_vect_list[variables_name.index('inclination')])
 		delta_0l_percent=float(param_vect_list[variables_name.index('d0l_percent')])
+		alpha_star=float(param_vect_list[variables_name.index('alpha_star')])
 
 		maxHNR_l0=hmax_from_envelope(Hnumax, Dnu, gamma_max_l0) # build the maxHNR from gamma_max_l0_var as those are closely related to the NRJ of the modes
 		maxHNR_l0=Hmax_factor*maxHNR_l0
@@ -373,13 +377,12 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file):
 		maxHNR_l0=Hmax_factor*max(gaussian_filter(spec, scoef, mode='mirror'))
 
 		print('		dir_out=', dir_out)
-		nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=model_asymptotic(numax, Dnu, epsilon, DP1, beta_p_star=0., delta0l_percent=delta_0l_percent, gamma_max_l0=gamma_max_l0, maxHNR_l0=maxHNR_l0, alpha_star=0., 
-								rot_core=rot_core, rot_envelope=rot_envelope, inclination=inc, dfmin=6, dfmax=6, output_file_rot=os.path.join(dir_out,'info.rot'))
+		nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=model_asymptotic(numax, Dnu, epsilon, DP1, beta_p_star=0., delta0l_percent=delta_0l_percent, gamma_max_l0=gamma_max_l0, maxHNR_l0=maxHNR_l0, alpha_star=alpha_star, 
+								rot_core=rot_core, rot_envelope=rot_envelope, dfmin=6, dfmax=6, output_file_rot=os.path.join(dir_out,'info.rot'))
 		model_l0, model_l1, model_l2, model_l3=model_core_alt(freq, nu_l0=nu_l0, nu_l1=nu_m_l1, nu_l2=nu_l2, nu_l3=nu_l3, 
 				   height_l0=height_l0, height_l1=height_l1, height_l2=height_l2, height_l3=height_l3, 
 				   width_l0=width_l0, width_l1=width_m_l1, width_l2=width_l2, width_l3=width_l3, 
-				   a1_l1=a1_l1, a1_l2=a1_l1, a1_l3=a1_l1, inc=inc)
-
+				   a1_l1=a1_l1, a1_l2=a1_l2, a1_l3=a1_l3, inc=inc)
 		noise_background=1 # This because we removed early in this routine the noise background... ==> Only flat noise background of mean=1 now
 		l=likelihood(spec, model_l0 + model_l1 + model_l2 + model_l3 + noise_background, likelihood_name='chi22') # compute the likelihood for the model over the specified range
 		file_out_l=os.path.join(dir_out, 'likelihood.txt')
@@ -394,24 +397,50 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file):
 	return 0
 
 def main_grid_maker(kic='3426673'):
-	rootdir='/Volumes/home/2020/ML-Siddarth/tune-rgb/grids/'
+	rootdir='/Volumes/home/2020/ML-Siddarth/tune-rgb/grids/new/'
 	s1_dir='/Volumes/home/2020/ML-Siddarth/s1/'
 	mcmc_file_dir='/Volumes/home/2020/ML-Siddarth/setups/'
 
 	# NEED TO DEFINE HERE THE GRID
 	#variables_name=['DP1', 'gamma_max_l0', 'Hsig', 'rot_core', 'rot_envelope', 'inclination']
-	variables_name=['DP1', 'Hmax_factor', 'rot_core', 'rot_envelope',  'inclination', 'd0l_percent'] # ALL WILL BE DEFAULT VALUES
+	variables_name=['DP1', 'Hmax_factor', 'rot_core', 'rot_envelope',  'inclination', 'd0l_percent', 'alpha_star'] # ALL WILL BE DEFAULT VALUES
 	# VALUES FROM SIDDARTH TABLE: 
 	# KIC      Dnu  Published_Dp  Published_core_rot(mu_hz)  published_observed_rotational_components  Predicted_Dp Predicted_q Predicted_core_rotation(mu_hz)  Predicted_inclination
 	# 3426673 13.56 83.10         0.38                       2 										   82.90 		0.13 	    0.89 							43.50
-	DP1=[80, 81, 82, 83, 84]
-	Hmax_factor=[0.7, 0.8, 0.9]
+	# ------ New grid ----
+	#DP1=[82.90, 83.10]
+	#Hmax_factor=[0.65, 0.7, 0.75]
+	#rot_core=[0.38, 0.89]
+	#rot_envelope=[0.1]
+	#inclination=[43.5, 90]
+	#d0l_percent=[1.75, 2, 2.25]
+	#alpha_star=[0, 0.15]
+	# ---- Complementary elements to new grid [1]----
+	DP1=[83.10]
+	Hmax_factor=[0.5, 0.6, 0.65]
+	rot_core=[0.38]
+	rot_envelope=[0.02]
+	inclination=[43.5, 90]
+	d0l_percent=[1.5, 1.75, 2]
+	alpha_star=[0, 0.25, 0.4, 0.5]
+	# ---- Complementary elements to new grid [1]----
+	DP1=[82.90]
+	Hmax_factor=[0.5, 0.6, 0.65]
+	rot_core=[0.89]
+	rot_envelope=[0.02]
+	inclination=[43.5, 90]
+	d0l_percent=[1.5, 1.75, 2]
+	alpha_star=[0., 0.25, 0.4, 0.5]
+
+	# --- Initial grid ---
+	#DP1=[80, 81, 82, 83, 84]
+	#Hmax_factor=[0.7, 0.8, 0.9]
 	#gamma_max_l0=[] # We let the default value
-	rot_core=[0.3, 0.4, 0.5, 0.8, 0.9, 1.0]
-	rot_envelope=[0.1, 0.2]
-	inclination=[30, 45, 60, 90]
-	d0l_percent=[2]
-	variables=[DP1, Hmax_factor, rot_core, rot_envelope, inclination, d0l_percent] 
+	#rot_core=[0.3, 0.4, 0.5, 0.8, 0.9, 1.0]
+	#rot_envelope=[0.1, 0.2]
+	#inclination=[30, 45, 60, 90]
+	#d0l_percent=[2]
+	variables=[DP1, Hmax_factor, rot_core, rot_envelope, inclination, d0l_percent, alpha_star] 
 	
 	# Execute the grid_maker
 	s1_file= os.path.join(s1_dir , kic) + '.sav'
@@ -420,7 +449,7 @@ def main_grid_maker(kic='3426673'):
 
 	# Ensuring that the rootdir exists
 	make_subdir_lintree(rootdir, [kic], verbose=True)
-	grid_maker(os.path.join(rootdir,kic), variables, variables_name, s1_file, mcmc_file)
+	grid_maker(os.path.join(rootdir,kic), variables, variables_name, s1_file, mcmc_file, N0=0, fmin=158, fmax=200)
 
 	print('All Done')
 

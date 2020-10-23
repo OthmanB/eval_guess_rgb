@@ -97,7 +97,6 @@ def model_core_alt(x, nu_l0=[], nu_l1=[], nu_l2=[], nu_l3=[],
 	V=amplitude_ratio(el, inc) # l, inc
 	for en in range(len(nu_l3)):
 		model_l3=model_l3 + build_l_mode(x, height_l3[en], nu_l3[en], a1_l3[en], a2, a3, asym, width_l3[en], el, V) # H, f, a1, a2, a3, asym, Width, l, V
-
 	# ----- degug ----
 	#plt.plot(x, model_l0, color='black')
 	#plt.plot(x, model_l1, color='red')
@@ -127,7 +126,7 @@ def model_core(params, x):
 
 
 def model_asymptotic(numax_star, Dnu_star, epsilon_star, DP1_star, beta_p_star=0., delta0l_percent=1, gamma_max_l0=1, maxHNR_l0=1, alpha_star=0., 
-	rot_core=0.1, rot_envelope=0.1, inclination=45, dfmin=6, dfmax=6, noise_params=[ 1., -2. , 0. , 1. ,-1. , 0. , 2.  ,1.], output_file_rot='test.rot'):
+	rot_core=0.1, rot_envelope=0.1, dfmin=6, dfmax=6, noise_params=[ 1., -2. , 0. , 1. ,-1. , 0. , 2.  ,1.], output_file_rot='test.rot'):
 	'''
 		numnax_star: numax of the star
 		Dnu_star: Large separation Dnu of the star
@@ -144,19 +143,19 @@ def model_asymptotic(numax_star, Dnu_star, epsilon_star, DP1_star, beta_p_star=0
 	noise_params=[0, 1, 1, 1,1 ,1 , 1, 1]
 	# ---- Constants ----
 	el=1 # Degree of the simulated mixed mode
-	Vl=[1,1.5,0.6, 0.07]
+	Vl=[1.5,0.5, 0.05]
 	#delta0l_percent=1
-	q_star=0.2
+	q_star=0.13
 	# -------------------
 
 	# Parameters for p modes that follow exactly the asymptotic relation of p modes
-	delta0l_star=-el*(el + 1) * delta0l_percent / 100.
+	#delta0l_star=-el*(el + 1) * delta0l_percent / 100.
 
 	## Define the frequency range for the calculation by (1) getting numax from Dnu and (2) fixing a range around numax
 	#numax_star=numax_from_stello2009(Dnu_star)
 	fmin=numax_star - dfmin*Dnu_star
 	fmax=numax_star + dfmax*Dnu_star
-
+	
 	nmax_star=numax_star/Dnu_star - epsilon_star
 	alpha_p_star=beta_p_star/nmax_star
 	
@@ -164,8 +163,8 @@ def model_asymptotic(numax_star, Dnu_star, epsilon_star, DP1_star, beta_p_star=0
 	Teff_star=-1
 	rot_ratio=-1
 	H0_spread=0
-	#filetemplate="Configurations/templates/Sun.template"
-	filetemplate="templates/11771760.template"
+	filetemplate="templates/Sun.template"
+	#filetemplate="templates/11771760.template"
 	# ----------------
 
 	nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3=make_synthetic_asymptotic_star(Teff_star, numax_star, Dnu_star, epsilon_star, 
