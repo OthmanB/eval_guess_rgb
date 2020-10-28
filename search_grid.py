@@ -3,6 +3,7 @@
 '''
 
 import numpy as np
+import glob
 import os
 import itertools
 from io_tune import *
@@ -16,6 +17,25 @@ def rotate_list(l, x):
 		A basic function that will shift by x the list l and push the last element of l to the begining
 	'''
 	return l[-x:] + l[:-x]
+
+def get_likelihood_file(directory, file, extension='txt', filter_type=None, filter_params=None):
+	'''
+		filter_type : None ==> No filter
+		filter_type : 'index' ==> search all files that starts by file and return the index specified in filter_params
+	'''
+	file_out=file
+	if filter_type != None: # If no filter, return the file(s) without discrimination
+		if filter_type == 'index':
+			file_out=glob.glob(os.path.join(directory, file + '*.' + extension)) 
+			try:
+				file_out=file_out[filter_params]
+			except:
+				print('directory: ', directory)
+				print('file     : ', file)
+				print('file_out : ', file_out)
+				
+			file_out=file_out.split('/')[-1]
+	return file_out
 
 def read_likelihood_file(dir_file, likelihood_file='likelihood.txt'):
 	'''
@@ -35,7 +55,7 @@ def get_depth_dir(dir):
 	'''
 	return np.float(len(dir.split('/'))-1)
 
-def search_grid(dir_grid, Nbest=5, combi_file=None, minimize=False, likelihood_filename='likelihood.txt', verbose=False):
+def search_grid(dir_grid, Nbest=5, combi_file=None, minimize=False, likelihood_filename='likelihood.txt', verbose=False, file_filter_type=None, file_filter_params=None):
 	'''
 		A function that perform a search for the best value of the statistical
 		criteria calculated over the grid
@@ -63,7 +83,12 @@ def search_grid(dir_grid, Nbest=5, combi_file=None, minimize=False, likelihood_f
 		for  d in all_dirs:
 			depths[i]=get_depth_dir(d)
 			i=i+1
-		keep=np.where(depths == np.max(depths))[0] # We keep only the longest directories
+		try:
+			keep=np.where(depths == np.max(depths))[0] # We keep only the longest directories
+		except:
+			print(max(depths))
+			print(np.where(depths == np.max(depths)))
+			exit()
 		dirs=[]
 		for i in range(len(keep)):
 			dirs.append(all_dirs[int(keep[i])])
@@ -82,44 +107,87 @@ def search_grid(dir_grid, Nbest=5, combi_file=None, minimize=False, likelihood_f
 		exit()
 
 	print('[2] Searching for best likelihood...')
-	best_sols=np.zeros(Nbest, dtype=np.float)
-	#dir_best_sols=deque(list(itertools.repeat("", Nbest)))
+	# ------ Initialise the tables --------
+	failed_list=[] # If we failed to get a solution, we put it here
+	best_sols=np.zeros(Nbest, dtype=np.float) + np.nan
 	dir_best_sols=list(itertools.repeat("", Nbest))
-	for d in dirs:
-		l=read_likelihood_file(d, likelihood_file=likelihood_filename)
-		if minimize == False:
-			if best_sols[0] <= l:
-				best_sols=shift(best_sols,1)
-				#dir_best_sols=dir_best_sols.rotate(1)		
-				dir_best_sols=rotate_list(dir_best_sols,1)
-				best_sols[0]=l
-				dir_best_sols[0]=d
-				if verbose == True:
-					print('likelihood=', l)
-					print('dir=', d)
-					print('-----')
-		else:
-			if best_sols[0] >=l:
-				best_sols=shift(best_sols,1)
-				#dir_best_sols=dir_best_sols.rotate(1)
-				dir_best_sols=rotate_list(dir_best_sols,1)
-				best_sols[0]=l
-				dir_best_sols[0]=d
-				if verbose == True:
-					print('likelihood=', l)
-					print('dir=', d)
-					print('-----')
-
+	for i in range(Nbest):
+		file=get_likelihood_file(dirs[i], likelihood_filename, extension='txt', filter_type=file_filter_type, filter_params=file_filter_params)
+		#l=read_likelihood_file(d, likelihood_file=likelihood_filename)
+		try:
+			l=read_likelihood_file(dirs[i], likelihood_file=file)	
+			best_sols[i]=l
+			dir_best_sols[i]=dirs[i]
+		except:
+			failed_list.append(dirs[i])
+	s=np.argsort(best_sols)
+	tmp=dir_best_sols
+	for i in range(len(s)):
+		dir_best_sols[i]=tmp[s[i]]
+	if minimize == False:
+		best_sols=best_sols[::-1]
+		dir_best_sols=dir_best_sols[::-1]
+	# ----- Main loop -----
+	for d in dirs[Nbest:]:
+		file=get_likelihood_file(d, likelihood_filename, extension='txt', filter_type=file_filter_type, filter_params=file_filter_params)
+		#l=read_likelihood_file(d, likelihood_file=likelihood_filename)
+		try:
+			l=read_likelihood_file(d, likelihood_file=file)
+			if minimize == False:
+				if best_sols[0] <= l:
+					best_sols=shift(best_sols,1)
+					#dir_best_sols=dir_best_sols.rotate(1)		
+					dir_best_sols=rotate_list(dir_best_sols,1)
+					best_sols[0]=l
+					dir_best_sols[0]=d
+					if verbose == True:
+						print('likelihood=', l)
+						print('dir=', d)
+						print('-----')
+			else:
+				if best_sols[0] >=l:
+					best_sols=shift(best_sols,1)
+					#dir_best_sols=dir_best_sols.rotate(1)
+					dir_best_sols=rotate_list(dir_best_sols,1)
+					best_sols[0]=l
+					dir_best_sols[0]=d
+					if verbose == True:
+						print('likelihood=', l)
+						print('dir=', d)
+						print('-----')
+		except:
+			print('Failed to find likelihood files in :', d)
+			print('				Pursuing...')
+			failed_list.append(d)
 	return best_sols, dir_best_sols
 
 # KIC      Dnu  Published_Dp  Published_core_rot(mu_hz)  published_observed_rotational_components  Predicted_Dp Predicted_q Predicted_core_rotation(mu_hz)  Predicted_inclination
 # 3426673  13.56 83.10         0.38                       2 										   82.90 		0.13 	    0.89 							43.50
 	
-dir_grid='/Volumes/home/2020/ML-Siddarth/tune-rgb/grids/new/3426673/'
-#dir_grid='/Volumes/home/2020/ML-Siddarth/tune-rgb/grids/3426673/80.000000/0.157259/0.700000/' # For test only
-best_sols, dir_best_sols=search_grid(dir_grid, Nbest=5, combi_file=None, minimize=False, likelihood_filename='likelihood.txt')
-print('Best solutions found at those locations:')
+#dir_grid='/Volumes/home/2020/ML-Siddarth/eval_guess_rgb/grids/3426673/'
+dir_grid='/Volumes/home/2020/ML-Siddarth/eval_guess_rgb/grids/fine/3426673/'
+#dir_grid='/Volumes/home/2020/ML-Siddarth/eval_guess_rgb/grids/3426673/80.000000/0.157259/0.700000/' # For test only
+#best_sols, dir_best_sols=search_grid(dir_grid, Nbest=5, combi_file=None, minimize=False, likelihood_filename='likelihood.txt')
+
+best_sols, dir_best_sols=search_grid(dir_grid, Nbest=10, combi_file=None, minimize=False, likelihood_filename='likelihood_', file_filter_type="index", file_filter_params=3)
+print('[Slice 3] Best solutions found at those locations:')
 print("{:10} {:10}".format('likelihood', 'directory'))
 for i in range(len(best_sols)):
 	if dir_best_sols[i] != '':
 		print("{:10}     {}".format(best_sols[i], dir_best_sols[i]))
+
+best_sols, dir_best_sols=search_grid(dir_grid, Nbest=10, combi_file=None, minimize=False, likelihood_filename='likelihood_', file_filter_type="index", file_filter_params=4)
+print('[Slice 4] Best solutions found at those locations:')
+print("{:10} {:10}".format('likelihood', 'directory'))
+for i in range(len(best_sols)):
+	if dir_best_sols[i] != '':
+		print("{:10}     {}".format(best_sols[i], dir_best_sols[i]))
+
+best_sols, dir_best_sols=search_grid(dir_grid, Nbest=10, combi_file=None, minimize=False, likelihood_filename='likelihood_', file_filter_type="index", file_filter_params=5)
+print('[Slice 5] Best solutions found at those locations:')
+print("{:10} {:10}".format('likelihood', 'directory'))
+for i in range(len(best_sols)):
+	if dir_best_sols[i] != '':
+		print("{:10}     {}".format(best_sols[i], dir_best_sols[i]))
+
+

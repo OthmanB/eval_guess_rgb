@@ -341,29 +341,42 @@ def solve_mm_asymptotic_O2p(Dnu_p, epsilon, el, delta0l, alpha_p, nmax, DPl, alp
 			try:
 				nu_m, ysol, nu,pnu, gnu=solver_mm(nu_p, nu_g, Dnu_p, DPl,  q, numin=nu_p - Dnu_p, numax=nu_p + Dnu_p, resol=resol, returns_axis=returns_axis, factor=fact)
 			except ValueError:
-				print("ValueError in solver_mm... Debug information:")
-				print(" np_min = ", np_min)
-				print(" np_max = ", np_max)
-				print(" ng_min = ", ng_min)
-				print(" ng_max = ", ng_max)	
-				print(" ---------- ")			
-				print(" Dnu_p = ", Dnu_p)
-				print(" np = ", np)
-				print(" epsilon= ", epsilon)
-				print(" delta0l= ", delta0l)
-				print(" alpha_p= ", alpha_p)
-				print(" nmax= ", nmax)
-				print(" ---------- ")
-				print("   nu_p: ", nu_p)
-				print("   nu_g: ", nu_g)
-				print("   Dnu_p: ", Dnu_p)
-				print("   DPl: ", DPl)
-				print("   q: ", q)
-				print("   numin=nu_p - Dnu_p: ", nu_p - Dnu_p)
-				print("   numax=nu_p + Dnu_p: ", nu_p + Dnu_p)
-				print("   resol: ", resol)
-				print("   factor: ", fact)
-				exit()
+				success=False
+				attempts=0
+				try:
+					while success == False and attempts < 4:
+						try:
+							fact=fact/2
+							nu_m, ysol, nu,pnu, gnu=solver_mm(nu_p, nu_g, Dnu_p, DPl,  q, numin=nu_p - Dnu_p, numax=nu_p + Dnu_p, resol=resol, returns_axis=returns_axis, factor=fact)
+							success=True
+						except ValueError:
+							print(' Problem with the fine grid when searching for a solution... attempting to reduce factor to ', fact, '...')
+				except ValueError:
+						print("ValueError in solver_mm... Debug information:")
+						print(' We excedeed the number of attempts to refine the grid by reducing factor')
+						print(" np_min = ", np_min)
+						print(" np_max = ", np_max)
+						print(" ng_min = ", ng_min)
+						print(" ng_max = ", ng_max)	
+						print(" ---------- ")			
+						print(" Dnu_p = ", Dnu_p)
+						print(" np = ", np)
+						print(" epsilon= ", epsilon)
+						print(" delta0l= ", delta0l)
+						print(" alpha_p= ", alpha_p)
+						print(" nmax= ", nmax)
+						print(" ---------- ")
+						print("   nu_p: ", nu_p)
+						print("   nu_g: ", nu_g)
+						print("   Dnu_p: ", Dnu_p)
+						print("   DPl: ", DPl)
+						print("   q: ", q)
+						print("   numin=nu_p - Dnu_p: ", nu_p - Dnu_p)
+						print("   numax=nu_p + Dnu_p: ", nu_p + Dnu_p)
+						print("   resol: ", resol)
+						print("   factor: ", fact)
+						exit()
+
 			if verbose == True:
 				print('==========================================')
 				print('nu_p: ', nu_p)

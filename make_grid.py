@@ -178,13 +178,33 @@ def make_specplot_v2(freq, spec, model_l0, model_l1, model_l2, model_l3, Delta, 
 		plt.close()
 	return 0
 
+def set_ranges(x, Delta, Delta_overlap=0.05):
+	'''
+		Defines a serie of intervals 
+	'''
+	xmin=min(x)
+	#xmax=max(x)
+	xmax_limit=max(x)
+	xmax=xmin + Delta + Delta_overlap*Delta
+	x_ranges=[[xmin, xmax]]
+	while xmax < xmax_limit:
+		if xmax > xmax_limit:
+			xmax=xmax_limit
+		xmin=xmin + Delta - Delta_overlap*Delta
+		xmax=xmin + Delta + Delta_overlap*Delta
+		x_ranges.append([xmin , xmax])
+	return x_ranges	
 
-def likelihood(y, model, likelihood_name='chi22'):
+def likelihood(y, model, likelihood_name='chi22', x=None, x_range=None):
 	'''
 		Function that handles the likelihood functions
 	'''
 	if likelihood_name == 'chi22':
-		l = np.sum(y/model)+np.sum(np.log(model))
+		if x_range == None :
+			l = np.sum(y/model)+np.sum(np.log(model))
+		else:
+			posOK=np.where(np.bitwise_and(x >= x_range[0], x<=x_range[1]))
+			l = np.sum(y[posOK]/model[posOK])+np.sum(np.log(model[posOK]))
 	else:
 		print('Error: The program only supports likelihood_name = "chi22"')
 	return l
@@ -380,7 +400,9 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file, N0=0, fmi
 		beta_p_star=float(param_vect_list[variables_name.index('beta_p_star')])
 
 		maxHNR_l0=hmax_from_envelope(Hnumax, Dnu, gamma_max_l0) # build the maxHNR from gamma_max_l0_var as those are closely related to the NRJ of the modes
-		maxHNR_l0=Hmax_factor*maxHNR_l0
+		maxHNR_l0=Hmax_factor*maxHNR_l0[0]
+
+		#exit()
 		#maxHNR_l0=100
 		scoef=gamma_max_l0*2
 		maxHNR_l0=Hmax_factor*max(gaussian_filter(spec, scoef, mode='mirror'))
@@ -393,26 +415,30 @@ def grid_maker(rootdir, variables, variables_name, s1_file, mcmc_file, N0=0, fmi
 				   width_l0=width_l0, width_l1=width_m_l1, width_l2=width_l2, width_l3=width_l3, 
 				   a1_l1=a1_l1, a1_l2=a1_l2, a1_l3=a1_l3, inc=inc)
 		noise_background=1 # This because we removed early in this routine the noise background... ==> Only flat noise background of mean=1 now
-		l=likelihood(spec, model_l0 + model_l1 + model_l2 + model_l3 + noise_background, likelihood_name='chi22') # compute the likelihood for the model over the specified range
-		file_out_l=os.path.join(dir_out, 'likelihood.txt')
-		fo=open(file_out_l, 'w')
-		fo.write("{:16f}".format(l))
-		fo.close()
-		file_out_core=os.path.join(dir_out , 'spectrum')
-		make_specplot_v2(freq, spec, model_l0 + noise_background, model_l1 + noise_background, model_l2 + noise_background, model_l3 + noise_background, Dnu, file_out_core, scoef=[0.1, 0.4, 0.8], fmin=-1, fmax=-1, col_spec=['lightgrey', 'darkgray', 'black'], likelihood=l)
+		
+		x_ranges=set_ranges(freq, Dnu, Delta_overlap=0.05)	
+		for xr in x_ranges:
+			l=likelihood(spec, model_l0 + model_l1 + model_l2 + model_l3 + noise_background, likelihood_name='chi22', x=freq, x_range=xr) # compute the likelihood for the model over the specified range
+			file_out_l=os.path.join(dir_out, 'likelihood_' +"{:20.4f}".format(xr[0]).strip() + '-' + "{:20.4f}".format(xr[1]).strip() + '.txt')
+			fo=open(file_out_l, 'w')
+			fo.write("{:16f}".format(l))
+			fo.close()
+			file_out_core=os.path.join(dir_out , 'spectrum_' +"{:20.4f}".format(xr[0]).strip() + '-' + "{:20.4f}".format(xr[1]).strip() )
+			make_specplot_v2(freq, spec, model_l0 + noise_background, model_l1 + noise_background, model_l2 + noise_background, model_l3 + noise_background, Dnu, file_out_core, scoef=[0.1, 0.4, 0.8], fmin=xr[0], fmax=xr[1], col_spec=['lightgrey', 'darkgray', 'black'], likelihood=l)
+		
 		del model_l0, model_l1, model_l2, model_l3, nu_l0, nu_p_l1, nu_g_l1, nu_m_l1, nu_l2, nu_l3, width_l0, width_m_l1, width_l2, width_l3, height_l0, height_l1, height_l2, height_l3, a1_l1, a1_l2, a1_l3
 		gc.collect()
 		#exit()
 	return 0
 
 def main_grid_maker(kic='3426673'):
-	#rootdir='/Volumes/home/2020/ML-Siddarth/tune-rgb/grids/new/'
-	#s1_dir='/Volumes/home/2020/ML-Siddarth/s1/'
-	#mcmc_file_dir='/Volumes/home/2020/ML-Siddarth/setups/'
+	rootdir=os.path.join(os.getcwd(), 'grids/fine/')
+	
+	s1_dir='/Volumes/home/2020/ML-Siddarth/s1/'
+	mcmc_file_dir='/Volumes/home/2020/ML-Siddarth/setups/'
 
-	rootdir=os.path.join(os.getcwd(), 'grids/')
-	s1_dir='/var/services/homes/dataonly/2020/ML-Siddarth/s1/'
-	mcmc_file_dir='/var/services/homes/dataonly/2020/ML-Siddarth/setups/'
+	#s1_dir='/var/services/homes/dataonly/2020/ML-Siddarth/s1/'
+	#mcmc_file_dir='/var/services/homes/dataonly/2020/ML-Siddarth/setups/'
 
 	# NEED TO DEFINE HERE THE GRID
 	#variables_name=['DP1', 'gamma_max_l0', 'Hsig', 'rot_core', 'rot_envelope', 'inclination']
@@ -429,28 +455,31 @@ def main_grid_maker(kic='3426673'):
 	#d0l_percent=[1.75, 2, 2.25]
 	#alpha_star=[0, 0.15]
 	# ---- Complementary elements to new grid [1]----
-	DP1=[83.10]
-	Hmax_factor=[0.4,0.45, 0.5, 0.6]
+	#DP1=[83.10]
+	#Hmax_factor=[0.45, 0.5, 0.6] # 0.4
 	rot_core=[0.38]
-	rot_envelope=[0.03, 0.04, 0.05]
-	inclination=[43.5, 90]
-	d0l_percent=[1.5, 1.6, 1.75]
-	alpha_star=[0., 0.1, 0.25, 0.3, 0.35, 0.4, 0.45]
-	beta_p_star=[0., 0.004, 0.0076, 0.01, 0.014]
+	##rot_envelope=[0.03, 0.04, 0.05] # 0.02
+	#rot_envelope=[0.02]
+	#inclination=[43.5, 90]
+	#d0l_percent=[1.7, 1.75] # 1.6
+	#alpha_star=[0., 0.1, 0.25, 0.35, 0.4, 0.45]
+	#beta_p_star=[0., 0.004, 0.0076, 0.01, 0.014]
+	#beta_p_star=[0.]
 	# ---- Complementary elements to new grid [1]----
 	DP1=[82.90]
 	Hmax_factor=[0.4, 0.45, 0.5, 0.6]
-	rot_core=[0.89]
-	rot_envelope=[0.03, 0.04, 0.05]
+	rot_core=[0.89, 0.38]
+	rot_envelope=[0.03] #[0.03, 0.04, 0.05]
 	inclination=[43.5, 90]
-	d0l_percent=[1.5, 1.6, 1.75]
+	d0l_percent=[1.6, 1.7, 1.75]
 	alpha_star=[0.0, 0.1, 0.25, 0.35, 0.4, 0.45]
 	beta_p_star=[0., 0.004, 0.0076, 0.01, 0.014]
-
+	#beta_p_star=[0.]
 	# --- Initial grid ---
 	#DP1=[80, 81, 82, 83, 84]
 	#Hmax_factor=[0.7, 0.8, 0.9]
 	#gamma_max_l0=[] # We let the default value
+	#alpha_star=[0.0]
 	#rot_core=[0.3, 0.4, 0.5, 0.8, 0.9, 1.0]
 	#rot_envelope=[0.1, 0.2]
 	#inclination=[30, 45, 60, 90]
@@ -465,8 +494,9 @@ def main_grid_maker(kic='3426673'):
 
 	# Ensuring that the rootdir exists
 	make_subdir_lintree(rootdir, [kic], verbose=True)
-	grid_maker(os.path.join(rootdir,kic), variables, variables_name, s1_file, mcmc_file, N0=0, fmin=171, fmax=185)
+	grid_maker(os.path.join(rootdir,kic), variables, variables_name, s1_file, mcmc_file, N0=0, fmin=None, fmax=None)
 
 	print('All Done')
 
 main_grid_maker()
+	
