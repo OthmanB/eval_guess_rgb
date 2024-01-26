@@ -42,7 +42,7 @@ def build_l_mode(x_l,Amp_l,f_c_l,a1,a2,a3, asym,gamma_l,l,V):
 		if l != 0 :
 			Qlm=1.*(l*(l+1.) - 3.*m**2)/((2.*l-1.)*(2.*l+3.)) #  coeficient for centrifugal force
 			if l == 1:
-				clm=m #   latitudinal coeficient for l=1
+				clm=0 #   latitudinal coeficient for l=1
 			if l == 2:
 				clm=1.*(5*m**3 - 17*m)/3. #  latitudinal coeficient for l=2
 			if l == 3:
